@@ -1,0 +1,137 @@
+from ssl import Options
+import json
+import ipywidgets as widgets
+from IPython.display import display
+import webbrowser
+
+from google.colab import drive 
+drive.mount('/content/drive')
+
+with open('/content/drive/My Drive/students.json','r') as f:
+  file_content = f.read()
+
+students_dict = json.loads(file_content)
+students_arr = []
+
+for obj in students_dict:
+  students_arr.append([obj["first_name"], obj["last_name"],obj["email"], obj["courses"], obj["URL"]])
+
+student_Name = widgets.Dropdown(
+    options = [None, students_arr[0][0], students_arr[1][0], students_arr[2][0], students_arr[3][0], students_arr[4][0]],
+    layout = {'width': 'max-content'},
+    value = None,
+    description = 'First Name:',
+)
+
+last_Name = widgets.Text(
+    value = '',
+    placeholder = 'Last name',
+    description = 'Last Name:',
+    disabled = True,
+)
+
+email = widgets.Text(
+    value = '',
+    placeholder = 'Email',
+    description = 'Email:',
+    layout = {'width': '350px'},
+    disabled = True,
+)
+
+course = widgets.Combobox(
+    placeholder = 'Choose your favorite course',
+    description = 'Course:',
+    ensure_option = True,
+    disabled = False,
+)
+
+URL = widgets.HTML(
+    value = '',
+    description = 'Favorite Website:',
+)
+
+txtName = widgets.HTML(
+    value = '<h2>Select a Student:</h2>',
+)
+
+button = widgets.Button(
+    description = 'Save Data',
+    disabled = True,
+    button_style = 'success',
+    tooltip = 'Save favorite course of student',
+)
+
+student_Name.style.description_width = 'initial'
+last_Name.style.description_width = 'initial'
+email.style.description_width = 'initial'
+course.style.description_width = 'initial'
+URL.style.description_width = 'initial'
+
+
+# This method returns all the available courses.
+def create_courses_arr(arr):
+  courses_options = arr[3]
+  return courses_options
+
+def on_change(change):
+    if change['type'] == 'change' and change['name'] == 'value':
+        for obj in students_arr:
+          if change['new'] == obj[0]:
+            last_Name.value = obj[1]
+            email.value = obj[2]
+            course.options = create_courses_arr(obj)
+            URL.value = '<a href="' + obj[4] + '" target="_blank">' + obj[4] + '</a>'
+
+        course.placeholder = 'Please choose your favorite course'
+        course.value = ''
+        button.disabled = True
+     
+# When student selected favorite course from the dropdown.
+def on_course_change(change):
+  if change['type'] == 'change' and change['name'] == 'value':
+    button.disabled = False
+
+# When the student pressed on Save Data button adding the new data to the JSON file.
+def on_save_click(b):
+    for obj in students_dict:
+      if obj["first_name"] == student_Name.value:
+        newData = {"favorite_course": course.value}
+        obj.update(newData)
+    print(students_dict)
+    json_object = json.dumps(students_dict, indent = 4)
+ 
+    # Writing to the JSON file.
+    with open('/content/drive/My Drive/students.json', "w") as updatedfile:
+        updatedfile.write(json_object)
+    webbrowser.open_new(students_arr[student_Name.index - 1][4])
+
+css = """
+.custom-text-widget {
+    width: 20%;
+    background-color: lightgray;
+    border: 1px solid black;
+    border-radius: 4px;
+    white-space: nowrap;
+    display: flex;
+    align-content: flex-start;
+}
+"""
+css_headline = """
+.css-headline {
+  font-size: 24px;
+}
+"""
+
+
+txtName.add_class('css-headline')
+student_Name.add_class('custom-text-widget')
+last_Name.add_class('custom-text-widget')
+email.add_class('custom-text-widget')
+course.add_class('custom-text-widget')
+URL.add_class('custom-text-widget')
+
+student_Name.observe(on_change)
+course.observe(on_course_change)
+display(txtName, student_Name, last_Name, email, course, URL, button)
+button.on_click(on_save_click)
+display(widgets.HTML('<style>{}</style>'.format(css)),widgets.HTML('<style>{}</style>'.format(css_headline)))
